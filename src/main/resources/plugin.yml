@@ -1,0 +1,52 @@
+name: EmptyMapCreator
+main: ru.saydov.emc.EmptyMapCreatorPlugin
+version: ${project.version}
+api-version: '1.21'
+author: saydov
+load: STARTUP
+folia-supported: false
+
+commands:
+  emc:
+    description: Управление пустыми мирами
+    aliases: [emptymaps, emap]
+    usage: /emc <create|load|delete|tp|list> [args]
+    permission: emc.use
+  speed:
+    description: Установить скорость ходьбы или полёта
+    usage: /speed [walk|fly] <1-10>
+    permission: emc.speed
+
+permissions:
+  emc.use:
+    description: Базовый доступ к команде /emc (справка)
+    default: op
+  emc.create:
+    description: Создание новых пустых миров
+    default: op
+  emc.load:
+    description: Загрузка существующих миров под управление
+    default: op
+  emc.delete:
+    description: Удаление управляемых миров с диска
+    default: op
+  emc.tp:
+    description: Телепортация в управляемый мир
+    default: op
+  emc.list:
+    description: Просмотр списка управляемых миров
+    default: op
+  emc.speed:
+    description: Установка скорости ходьбы/полёта через /speed
+    default: op
+  emc.admin:
+    description: Полный доступ ко всем командам плагина
+    default: op
+    children:
+      emc.use: true
+      emc.create: true
+      emc.load: true
+      emc.delete: true
+      emc.tp: true
+      emc.list: true
+      emc.speed: true
