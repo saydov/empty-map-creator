@@ -51,8 +51,6 @@ public class EmptyWorldRules {
         world.setThundering(false);
     }
 
-    // GameRule.DO_FIRE_TICK помечен @Deprecated(forRemoval=true), но в Paper 1.21.11
-    // нет эквивалента в новом GameRules — используем старый API до появления замены.
     @SuppressWarnings("removal")
     private static void disableFireTick(World world) {
         world.setGameRule(GameRule.DO_FIRE_TICK, false);

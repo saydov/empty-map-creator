@@ -100,11 +100,7 @@ public class VoidChunkGenerator extends ChunkGenerator {
      * @return постоянная базовая высота, равная {@value #DEFAULT_SPAWN_HEIGHT}
      */
     @Override
-    public int getBaseHeight(WorldInfo worldInfo,
-                             Random random,
-                             int x,
-                             int z,
-                             HeightMap heightMap) {
+    public int getBaseHeight(WorldInfo worldInfo, Random random, int x, int z, HeightMap heightMap) {
         return DEFAULT_SPAWN_HEIGHT;
     }
 }
