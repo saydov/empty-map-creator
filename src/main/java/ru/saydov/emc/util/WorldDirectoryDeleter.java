@@ -24,6 +24,11 @@ import java.util.stream.Stream;
  * с указанием конкретного пути — checked exception не протекает наружу
  * (раздел 31 STYLE_GUIDE).
  *
+ * <p><b>Защита от выхода за пределы контейнера:</b> удаление разрешено только
+ * для путей, находящихся строго внутри {@code expectedParent} — сам родитель
+ * удалить нельзя. Защищает от ошибок вызывающего кода и от случаев, когда
+ * валидация имени была обойдена выше по стеку.
+ *
  * @see WorldDeletionException
  */
 @UtilityClass
@@ -36,17 +41,28 @@ public class WorldDirectoryDeleter {
      * чтобы сначала удалить файлы и вложенные директории, а затем сами родительские
      * директории — иначе {@link Files#delete} не сработает на непустой директории.
      *
-     * @param root корневая директория удаляемого мира
-     * @throws WorldDeletionException если обход или удаление файла не удались
+     * <p>Перед удалением {@code root} приводится к абсолютному нормализованному виду
+     * и проверяется, что он строго вложен в {@code expectedParent}. При совпадении
+     * с родителем или выходе за его пределы бросается {@link WorldDeletionException}.
+     *
+     * @param root           корневая директория удаляемого мира
+     * @param expectedParent ожидаемая родительская директория (например, {@code world container})
+     * @throws WorldDeletionException если путь вне {@code expectedParent}
+     *                                или обход/удаление файла не удались
      */
-    public static void delete(Path root) {
-        if (!Files.exists(root)) {
+    public static void delete(Path root, Path expectedParent) {
+        var normalizedRoot = root.toAbsolutePath().normalize();
+        var normalizedParent = expectedParent.toAbsolutePath().normalize();
+        if (normalizedRoot.equals(normalizedParent) || !normalizedRoot.startsWith(normalizedParent)) {
+            throw new WorldDeletionException("refuse to delete outside container: " + normalizedRoot);
+        }
+        if (!Files.exists(normalizedRoot)) {
             return;
         }
-        try (Stream<Path> walk = Files.walk(root)) {
+        try (var walk = Files.walk(normalizedRoot)) {
             walk.sorted(Comparator.reverseOrder()).forEach(WorldDirectoryDeleter::deleteSingle);
         } catch (IOException e) {
-            throw new WorldDeletionException("walk: " + root, e);
+            throw new WorldDeletionException("walk: " + normalizedRoot, e);
         }
     }
 

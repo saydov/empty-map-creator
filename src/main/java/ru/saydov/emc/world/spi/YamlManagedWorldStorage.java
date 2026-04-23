@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
+import ru.saydov.emc.exception.InvalidWorldNameException;
+import ru.saydov.emc.util.WorldNameValidator;
 import ru.saydov.emc.world.ManagedWorld;
 
 import java.io.File;
@@ -71,6 +73,12 @@ public class YamlManagedWorldStorage {
     private final Map<String, ManagedWorld> cache = new LinkedHashMap<>();
 
     private static Optional<ManagedWorld> readWorld(String name, @Nullable String environmentName, long seed) {
+        try {
+            WorldNameValidator.validate(name);
+        } catch (InvalidWorldNameException e) {
+            log.warn("Skipping world with invalid name from YAML: {}", name);
+            return Optional.empty();
+        }
         if (environmentName == null) {
             log.warn("Skipping world with missing environment: {}", name);
             return Optional.empty();

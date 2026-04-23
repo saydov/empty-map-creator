@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
+import ru.saydov.emc.exception.InvalidWorldNameException;
 import ru.saydov.emc.exception.WorldAlreadyExistsException;
 import ru.saydov.emc.exception.WorldDeletionException;
 import ru.saydov.emc.exception.WorldNotFoundException;
@@ -17,6 +18,7 @@ import ru.saydov.emc.world.EmptyWorldService;
 import ru.saydov.emc.world.ManagedWorld;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -47,9 +49,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BukkitEmptyWorldService implements EmptyWorldService {
 
+    /**
+     * Маркерный файл Minecraft-мира в корне директории.
+     *
+     * <p>Используется в {@link #load(String)} для отличия настоящего
+     * сохранённого мира от случайной одноимённой папки в контейнере
+     * ({@code plugins/}, {@code logs/}, {@code cache/} и т.п.) —
+     * без этой проверки Bukkit начнёт писать region-файлы внутрь
+     * произвольного каталога сервера.
+     */
+    private static final String LEVEL_MARKER = "level.dat";
+
     private final YamlManagedWorldStorage storage;
     private final File serverRoot;
     private final VoidChunkGenerator voidChunkGenerator;
+
+    private static boolean looksLikeWorld(File directory) {
+        return new File(directory, LEVEL_MARKER).isFile();
+    }
 
     private static WorldCreator newEmptyCreator(ManagedWorld managedWorld, VoidChunkGenerator generator) {
         return new WorldCreator(managedWorld.name())
@@ -82,7 +99,12 @@ public class BukkitEmptyWorldService implements EmptyWorldService {
     }
 
     private File worldDirectoryOf(String name) {
-        return new File(serverRoot, name);
+        var root = serverRoot.toPath().toAbsolutePath().normalize();
+        Path resolved = root.resolve(name).normalize();
+        if (!resolved.startsWith(root) || resolved.equals(root)) {
+            throw new InvalidWorldNameException(name);
+        }
+        return resolved.toFile();
     }
 
     private boolean existsAnywhere(String name) {
@@ -135,10 +157,11 @@ public class BukkitEmptyWorldService implements EmptyWorldService {
     @Override
     public ManagedWorld load(String name) {
         WorldNameValidator.validate(name);
-        if (storage.find(name).isPresent()) {
+        if (storage.find(name).isPresent() || Bukkit.getWorld(name) != null) {
             throw new WorldAlreadyExistsException(name);
         }
-        if (!worldDirectoryOf(name).exists()) {
+        var directory = worldDirectoryOf(name);
+        if (!directory.isDirectory() || !looksLikeWorld(directory)) {
             throw new WorldNotFoundException(name);
         }
         var descriptor = defaultDescriptor(name);
@@ -154,7 +177,7 @@ public class BukkitEmptyWorldService implements EmptyWorldService {
         var descriptor = storage.find(name)
                 .orElseThrow(() -> new WorldNotFoundException(name));
         unloadIfLoaded(name);
-        WorldDirectoryDeleter.delete(worldDirectoryOf(name).toPath());
+        WorldDirectoryDeleter.delete(worldDirectoryOf(name).toPath(), serverRoot.toPath());
         storage.remove(descriptor.name());
         log.info("Deleted managed world: {}", name);
     }
