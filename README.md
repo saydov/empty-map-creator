@@ -163,10 +163,6 @@ mvn clean package    # сборка JAR
 
 Результат — `target/empty-map-creator-1.0-SNAPSHOT.jar`.
 
-## Разработка
-
-Код-стайл, правила JavaDoc и соглашения об именовании описаны в [`STYLE_GUIDE.md`](STYLE_GUIDE.md).
-
 ## Лицензия
 
 MIT
